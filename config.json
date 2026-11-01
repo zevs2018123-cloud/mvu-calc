@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "title": "Мотивация МВУ с 1.08.2026",
+  "updated": "2026-11-01",
+  "baseDays": 7,
+  "days": [12, 11, 10, 9, 8, 7, 6, 5, 4, 3],
+  "floor": { "rate": 2, "from": 10000 },
+  "tiers": [
+    { "rate": 3, "from": 300000 },
+    { "rate": 5, "from": 430000 },
+    { "rate": 6, "from": 570000 },
+    { "rate": 7, "from": 900000 }
+  ],
+  "minMeetings": 20,
+  "saleConv": { "min": 25, "bonus": 12000 },
+  "subConv": { "min": 35, "bonus": 4000 },
+  "meetingRate": 320,
+  "hardFix": 12000,
+  "payday": 10,
+  "okk": { "clean": 3500, "error": 3500 },
+  "grades": [
+    { "prev": 5, "coef": 1.15 },
+    { "prev": 6, "coef": 1.3 }
+  ]
+}

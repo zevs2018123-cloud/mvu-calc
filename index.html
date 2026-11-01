@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Зарплата МВУ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232F49D0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='16' text-anchor='middle' fill='white'%3E%E2%82%BD%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow" id="cfgTitle">Менеджер вводных уроков</div>
+    <h1>Зарплата МВУ</h1>
+    <p>Вбей цифры за цикл, калькулятор посчитает выплату и покажет, сколько не хватает до следующего процента, бонусов и кэфа.</p>
+  </header>
+
+  <div class="layout">
+    <div class="col">
+      <section class="panel" aria-labelledby="h-in">
+        <div class="panel-head">
+          <h2 id="h-in">Цифры за цикл</h2>
+          <span class="tag" id="exampleTag">пример, подставь свои</span>
+          <button class="linkbtn" id="resetBtn" type="button">Новый цикл</button>
+        </div>
+
+        <div class="load">
+          <div class="lbl"><b>Дней в цикле</b><span class="hint-sm">от этого зависят планы и бонусы</span></div>
+          <div class="chips" id="days" role="group" aria-label="Дней в цикле"></div>
+        </div>
+
+        <div class="field">
+          <label for="own">Твоя выручка</label>
+          <div class="money">
+            <input class="inp" id="own" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+            <span class="cur">₽</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="closers">Оплаты через клоузеров</label>
+          <span class="hint-sm">плюсуются к твоей выручке</span>
+          <div class="money">
+            <input class="inp sm" id="closers" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+            <span class="cur">₽</span>
+          </div>
+        </div>
+
+        <div class="counts">
+          <div class="count">
+            <div class="txt"><b>Проведено встреч</b><span id="meetDesc">УВУ</span></div>
+            <div class="stepper" data-key="meetings">
+              <button type="button" data-d="-1" aria-label="Минус встреча">−</button>
+              <input id="meetings" type="text" inputmode="numeric" autocomplete="off" aria-label="Проведено встреч">
+              <button type="button" data-d="1" aria-label="Плюс встреча">+</button>
+            </div>
+          </div>
+          <div class="count">
+            <div class="txt"><b>Оплат</b><span>для конверсии в продажу</span></div>
+            <div class="stepper" data-key="sales">
+              <button type="button" data-d="-1" aria-label="Минус оплата">−</button>
+              <input id="sales" type="text" inputmode="numeric" autocomplete="off" aria-label="Оплат">
+              <button type="button" data-d="1" aria-label="Плюс оплата">+</button>
+            </div>
+          </div>
+          <div class="count">
+            <div class="txt"><b>Подач в банк</b><span>заявки, для конверсии в подачу</span></div>
+            <div class="stepper" data-key="subs">
+              <button type="button" data-d="-1" aria-label="Минус подача">−</button>
+              <input id="subs" type="text" inputmode="numeric" autocomplete="off" aria-label="Подач в банк">
+              <button type="button" data-d="1" aria-label="Плюс подача">+</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-coef" id="gradePanel">
+        <h2 id="h-coef">Грейд</h2>
+        <div class="load">
+          <div class="lbl"><b>Кэф на этот цикл</b><span class="hint-sm">умножает процент с продаж</span></div>
+          <div class="chips c3" id="coef" role="group" aria-label="Кэф на этот цикл"></div>
+        </div>
+        <span class="hint-sm" id="gradeRule"></span>
+      </section>
+
+      <section class="panel" aria-labelledby="h-okk">
+        <h2 id="h-okk">ОКК</h2>
+        <div class="counts">
+          <div class="count">
+            <div class="txt"><b>Чистые сделки</b><span id="okkCleanDesc"></span></div>
+            <div class="stepper" data-key="okkClean">
+              <button type="button" data-d="-1" aria-label="Минус чистая сделка">−</button>
+              <input id="okkClean" type="text" inputmode="numeric" autocomplete="off" aria-label="Чистые сделки">
+              <button type="button" data-d="1" aria-label="Плюс чистая сделка">+</button>
+            </div>
+          </div>
+          <div class="count">
+            <div class="txt"><b>Сделки с ошибкой</b><span id="okkErrDesc"></span></div>
+            <div class="stepper" data-key="okkErr">
+              <button type="button" data-d="-1" aria-label="Минус сделка с ошибкой">−</button>
+              <input id="okkErr" type="text" inputmode="numeric" autocomplete="off" aria-label="Сделки с ошибкой">
+              <button type="button" data-d="1" aria-label="Плюс сделка с ошибкой">+</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-how">
+        <h2 id="h-how">Как считается</h2>
+        <ul class="notes" id="notes"></ul>
+      </section>
+    </div>
+
+    <section class="panel result" id="result" aria-labelledby="h-res">
+      <div class="total" id="totalCard">
+        <h2 id="h-res">Заработал за цикл</h2>
+        <div class="big" id="total">0 ₽</div>
+        <div class="split">
+          <div><span>Выплата за цикл</span><b id="weekly">0 ₽</b></div>
+          <div><span id="softLbl">За встречи</span><b id="soft">0 ₽</b></div>
+        </div>
+        <div class="sub" id="totalSub"></div>
+      </div>
+
+      <div class="rows" id="rows"></div>
+
+      <div class="block">
+        <h3 id="ladderTitle">Процент с продаж</h3>
+        <ol class="ladder" id="ladder"></ol>
+        <div class="meter" id="tierMeter"><i></i></div>
+        <div class="hint" id="tierHint"></div>
+        <div class="hint" id="coefHint"></div>
+      </div>
+
+      <div class="block">
+        <h3 id="convTitle">Конверсия</h3>
+        <div class="conv">
+          <div class="top"><b id="cSaleLbl">В продажу</b><span id="cSaleVal">0%</span></div>
+          <div class="meter" id="cSaleMeter"><i></i><span class="mark"></span></div>
+          <div class="scale" id="cSaleScale"></div>
+          <div class="hint" id="cSaleHint"></div>
+        </div>
+        <div class="conv">
+          <div class="top"><b id="cSubLbl">В подачу</b><span id="cSubVal">0%</span></div>
+          <div class="meter" id="cSubMeter"><i></i><span class="mark"></span></div>
+          <div class="scale" id="cSubScale"></div>
+          <div class="hint" id="cSubHint"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">
+    <span id="cfgStatus">Загружаю условия…</span>
+    <a class="navlink" href="admin/">Админка для РОП и РГ</a>
+  </footer>
+</div>
+
+<div class="bar calc" id="bar">
+  <div class="l"><span>Заработал за цикл</span><b id="barTotal">0 ₽</b></div>
+  <button type="button" class="btn primary" id="barBtn">Разбор</button>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var M = window.MVU, rub = M.rub, pc = M.pc, kf = M.kf, pl = M.pl, fmt = M.fmt;
+  var KEY = 'mvu-calc-v1';
+  var cfg = M.normalize(M.DEFAULT_CONFIG);
+  var EXAMPLE = { days: 7, own: 380000, closers: 0, meetings: 21, sales: 5, subs: 8, coef: 1, okkClean: 3, okkErr: 0 };
+  var W_MEET = ['встреча', 'встречи', 'встреч'], W_MEET_ACC = ['встречу', 'встречи', 'встреч'];
+  var W_SALE_ACC = ['оплату', 'оплаты', 'оплат'], W_SUB_ACC = ['подачу', 'подачи', 'подач'];
+
+  var state = Object.assign({}, EXAMPLE), isExample = true;
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY));
+    if (saved && typeof saved === 'object') {
+      Object.keys(EXAMPLE).forEach(function (k) { if (typeof saved[k] === 'number') state[k] = saved[k]; });
+      isExample = false;
+    }
+  } catch (e) {}
+
+  function $(id) { return document.getElementById(id); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function touched() { isExample = false; save(); render(); }
+  function setMeter(id, frac, ok) {
+    var m = $(id);
+    m.querySelector('i').style.width = (Math.max(0, Math.min(1, frac)) * 100) + '%';
+    m.classList.toggle('ok', !!ok);
+  }
+  function setHint(id, text, kind) { var h = $(id); h.textContent = text; h.className = 'hint' + (kind ? ' ' + kind : ''); }
+
+  /* chips that depend on config */
+  function buildChips() {
+    var d = $('days'); d.innerHTML = '';
+    if (cfg.days.indexOf(state.days) < 0) state.days = cfg.baseDays;
+    d.className = 'chips' + (cfg.days.length <= 4 ? ' c4' : '');
+    cfg.days.forEach(function (n) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip' + (n === cfg.baseDays ? ' base' : ''); b.textContent = n; b.dataset.v = n;
+      b.addEventListener('click', function () { state.days = n; touched(); });
+      d.appendChild(b);
+    });
+    var c = $('coef'); c.innerHTML = '';
+    var opts = M.coefOptions(cfg);
+    if (opts.indexOf(state.coef) < 0) state.coef = 1;
+    c.className = 'chips ' + (opts.length === 4 ? 'c4' : 'c3');
+    opts.forEach(function (v) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = v === 1 ? 'без кэфа' : kf(v); b.dataset.v = v;
+      b.addEventListener('click', function () { state.coef = v; touched(); });
+      c.appendChild(b);
+    });
+    $('gradePanel').hidden = !cfg.grades.length;
+  }
+
+  /* text that depends on config */
+  function fillTexts() {
+    $('cfgTitle').textContent = 'Менеджер вводных уроков · ' + cfg.title;
+    $('meetDesc').textContent = 'УВУ, по ' + rub(cfg.meetingRate) + ' за каждую';
+    $('okkCleanDesc').textContent = 'по банковским пунктам чек-листа, +' + rub(cfg.okk.clean) + ' с оплаты';
+    $('okkErrDesc').textContent = 'одна и больше по банковским пунктам, −' + rub(cfg.okk.error) + ' с оплаты';
+    $('softLbl').textContent = 'За встречи, придёт ' + cfg.payday + '-го';
+    $('cSaleLbl').textContent = 'В продажу, план ' + pc(cfg.saleConv.min);
+    $('cSubLbl').textContent = 'В подачу, план ' + pc(cfg.subConv.min);
+    $('cSaleScale').innerHTML = '<span>0%</span><span>' + pc(cfg.saleConv.min) + '</span><span>' + pc(cfg.saleConv.min * 2) + '</span>';
+    $('cSubScale').innerHTML = '<span>0%</span><span>' + pc(cfg.subConv.min) + '</span><span>' + pc(cfg.subConv.min * 2) + '</span>';
+    $('gradeRule').textContent = cfg.grades.map(function (g, i) {
+      if (i === 0) return kf(g.coef) + ' дают, если прошлый цикл закрыт на ' + pc(g.prev) + '+.';
+      return kf(g.coef) + ' дают, если перед этим уже был кэф ' + kf(cfg.grades[i - 1].coef) + ', а прошлый цикл закрыт на ' + pc(g.prev) + '+.';
+    }).join(' ');
+    var notes = [
+      'Процент берётся со всей выручки по ступени, до которой дошёл. Если выручка меньше ' + rub(cfg.floor.from) + ', процента нет.',
+      'Планы и бонусы указаны для цикла из ' + cfg.baseDays + ' ' + pl(cfg.baseDays, ['дня', 'дней', 'дней']) + '. Для другой длины цикла они пересчитываются пропорционально, как в таблице мотивации.',
+      'Бонусы за конверсию дают только при выполненном минимуме встреч. Можно получить оба сразу.',
+      'Кнопка «Новый цикл» обнуляет цифры и сама ставит кэф, который ты заработал на следующий цикл.',
+      'Процент, бонусы и ОКК платят по итогам цикла. Деньги за встречи и твёрдый фикс платят ' + cfg.payday + ' числа.'
+    ];
+    $('notes').innerHTML = notes.map(function (n) { return '<li>' + n + '</li>'; }).join('');
+  }
+
+  function bindMoney(id) {
+    var el = $(id);
+    el.addEventListener('input', function () {
+      var d = el.value.replace(/\D/g, '').slice(0, 9);
+      state[id] = d ? parseInt(d, 10) : 0;
+      el.value = d ? fmt(state[id]) : '';
+      touched();
+    });
+  }
+  ['own', 'closers'].forEach(bindMoney);
+
+  document.querySelectorAll('.stepper').forEach(function (st) {
+    var key = st.dataset.key, inp = st.querySelector('input');
+    st.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state[key] = Math.max(0, (state[key] || 0) + parseInt(b.dataset.d, 10));
+        inp.value = state[key]; touched();
+      });
+    });
+    inp.addEventListener('input', function () {
+      var d = inp.value.replace(/\D/g, '').slice(0, 4);
+      state[key] = d ? parseInt(d, 10) : 0; inp.value = d; touched();
+    });
+    inp.addEventListener('blur', function () { inp.value = state[key]; });
+  });
+
+  $('resetBtn').addEventListener('click', function () {
+    state.coef = M.compute(cfg, state).nextCoef;
+    ['own', 'closers', 'meetings', 'sales', 'subs', 'okkClean', 'okkErr'].forEach(function (k) { state[k] = 0; });
+    isExample = false; fillInputs(); save(); render();
+  });
+
+  function fillInputs() {
+    ['own', 'closers'].forEach(function (k) { $(k).value = state[k] ? fmt(state[k]) : ''; });
+    ['meetings', 'sales', 'subs', 'okkClean', 'okkErr'].forEach(function (k) { $(k).value = state[k]; });
+  }
+
+  function convHint(have, minPct, bonus, r, wordsAcc) {
+    if (!state.meetings) return ['Добавь проведённые встречи, чтобы посчитать конверсию.', ''];
+    if (!r.meetOK) {
+      var m = r.scale.minMeet - state.meetings;
+      return ['Для бонуса нужно минимум ' + r.scale.minMeet + ' ' + pl(r.scale.minMeet, W_MEET) + '. Осталось провести ' + m + ' ' + pl(m, W_MEET_ACC) + '.', 'warn'];
+    }
+    var d = M.convNeed(have, minPct, state.meetings);
+    if (!d) return ['Бонус есть: +' + rub(bonus) + '.', 'good'];
+    return ['Ещё ' + d + ' ' + pl(d, wordsAcc) + ' при тех же встречах, и будет +' + rub(bonus) + '.', 'warn'];
+  }
+
+  function render() {
+    var r = M.compute(cfg, state);
+    $('exampleTag').hidden = !isExample;
+    document.querySelectorAll('#days .chip').forEach(function (c) { c.setAttribute('aria-pressed', String(+c.dataset.v === state.days)); });
+    document.querySelectorAll('#coef .chip').forEach(function (c) { c.setAttribute('aria-pressed', String(+c.dataset.v === state.coef)); });
+
+    $('total').textContent = rub(r.total);
+    $('barTotal').textContent = rub(r.total);
+    $('weekly').textContent = rub(r.weekly);
+    $('soft').textContent = rub(r.soft);
+    $('totalSub').textContent = 'Твёрдый фикс ' + rub(cfg.hardFix) + ' платят раз в месяц ' + cfg.payday + '-го, сюда он не входит.';
+
+    var okkParts = [];
+    if (state.okkClean) okkParts.push(state.okkClean + ' × +' + rub(cfg.okk.clean));
+    if (state.okkErr) okkParts.push(state.okkErr + ' × −' + rub(cfg.okk.error));
+    var rows = [
+      { n: 'Процент с продаж', d: r.cur.rate ? pc(r.ratePct) + ' от ' + rub(r.revenue) : 'выручка меньше ' + rub(r.scale.tiers[1] ? r.scale.tiers[1].from : 0), a: r.pct, on: r.pct > 0 },
+      { n: state.coef > 1 ? 'Кэф ' + kf(state.coef) : 'Кэф', d: state.coef > 1 ? '+' + Math.round((state.coef - 1) * 100) + '% к проценту' : 'в этом цикле кэфа нет', a: r.coefAdd, on: r.coefAdd > 0, hide: !cfg.grades.length },
+      { n: 'Конверсия в продажу ' + pc(cfg.saleConv.min) + '+', d: 'бонус ' + rub(r.saleBonus), a: r.saleOK ? r.saleBonus : 0, on: r.saleOK, pill: r.saleOK ? ['ok', 'выполнено'] : ['no', 'не выполнено'] },
+      { n: 'Конверсия в подачу ' + pc(cfg.subConv.min) + '+', d: 'бонус ' + rub(r.subBonus), a: r.subOK ? r.subBonus : 0, on: r.subOK, pill: r.subOK ? ['ok', 'выполнено'] : ['no', 'не выполнено'] },
+      { n: 'ОКК', d: okkParts.length ? okkParts.join(', ') : 'нет отмеченных сделок', a: r.okk, on: r.okk !== 0, neg: r.okk < 0 },
+      { n: 'Встречи', d: state.meetings + ' × ' + rub(cfg.meetingRate), a: r.soft, on: r.soft > 0, pill: ['later', 'придёт ' + cfg.payday + '-го'] }
+    ];
+    $('rows').innerHTML = rows.filter(function (x) { return !x.hide; }).map(function (x) {
+      var pill = x.pill ? '<br><span class="pill ' + x.pill[0] + '">' + x.pill[1] + '</span>' : '';
+      return '<div class="row' + (x.on ? '' : ' off') + (x.neg ? ' neg' : '') + '"><div class="name"><b>' + x.n + '</b><span>' + x.d + '</span>' + pill + '</div><div class="amt">' + rub(x.a) + '</div></div>';
+    }).join('');
+
+    $('ladderTitle').textContent = 'Процент с продаж · цикл ' + state.days + ' ' + pl(state.days, ['день', 'дня', 'дней']);
+    $('ladder').innerHTML = r.scale.tiers.slice(1).map(function (t, j) {
+      var i = j + 1, cls = i < r.ti ? 'done' : (i === r.ti ? 'cur' : '');
+      return '<li class="' + cls + '"><span class="r">' + pc(t.rate * 100) + '</span><span class="f">от ' + rub(t.from) + '</span><span class="s">' + (i < r.ti ? '✓' : (i === r.ti ? 'сейчас' : '')) + '</span></li>';
+    }).join('');
+
+    if (r.next) {
+      setMeter('tierMeter', (r.revenue - r.cur.from) / (r.next.from - r.cur.from), false);
+      setHint('tierHint', 'До ' + pc(r.next.rate * 100) + ' не хватает ' + rub(r.toNext) + ' выручки. Дотянешь, и процент вырастет на ' + rub(r.nextGain) + '.', '');
+    } else {
+      setMeter('tierMeter', 1, true);
+      setHint('tierHint', 'Ты на максимальной ступени ' + pc(r.ratePct) + '.', 'good');
+    }
+
+    var ch = $('coefHint');
+    ch.hidden = !cfg.grades.length;
+    if (cfg.grades.length) {
+      var nc = r.nextCoef, g = r.coefGoal;
+      var txt = 'Следующий цикл: ' + (nc > 1 ? 'кэф ' + kf(nc) : 'без кэфа') + '.';
+      if (g && g.needNextCycle) txt += ' Закроешь и следующий цикл на ' + pc(g.prev) + '+, получишь ' + kf(g.coef) + '.';
+      else if (g && g.need > 0) txt += ' До ' + pc(g.prev) + ' не хватает ' + rub(g.need) + ', тогда будет ' + kf(g.coef) + '.';
+      setHint('coefHint', txt, nc > 1 ? 'good' : '');
+    }
+
+    $('convTitle').textContent = 'Конверсия · минимум ' + r.scale.minMeet + ' ' + pl(r.scale.minMeet, W_MEET);
+    $('cSaleVal').textContent = pc(r.cs * 100);
+    $('cSubVal').textContent = pc(r.cp * 100);
+    setMeter('cSaleMeter', r.cs * 100 / (cfg.saleConv.min * 2 || 1), r.saleOK);
+    setMeter('cSubMeter', r.cp * 100 / (cfg.subConv.min * 2 || 1), r.subOK);
+    var h1 = convHint(state.sales, cfg.saleConv.min, r.saleBonus, r, W_SALE_ACC);
+    var h2 = convHint(state.subs, cfg.subConv.min, r.subBonus, r, W_SUB_ACC);
+    setHint('cSaleHint', h1[0], h1[1]);
+    setHint('cSubHint', h2[0], h2[1]);
+  }
+
+  var bar = $('bar');
+  $('barBtn').addEventListener('click', function () {
+    $('result').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) { es.forEach(function (e) { bar.hidden = e.isIntersecting; }); }).observe($('totalCard'));
+  }
+
+  function apply(newCfg) {
+    cfg = newCfg;
+    buildChips(); fillTexts(); fillInputs(); render();
+  }
+  apply(cfg);
+  M.loadConfig('').then(function (res) {
+    apply(res.cfg);
+    $('cfgStatus').textContent = res.ok
+      ? 'Условия обновлены ' + (M.dateRu(res.cfg.updated) || '—')
+      : 'Не удалось загрузить актуальные условия, считаю по сохранённым в сайте.';
+  });
+})();
+</script>
+</body>
+</html>

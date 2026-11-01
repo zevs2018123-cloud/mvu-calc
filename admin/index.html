@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Админка МВУ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2313212B'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='700' font-size='16' text-anchor='middle' fill='white'%3E%E2%82%BD%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Layout: tabs on top; Команда = stat tiles + wide editable table + history; Условия = form sections + preview table + sticky save bar */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;width:max-content;max-width:100%}
+.tabs a{padding:8px 16px;border-radius:9px;font:600 14px var(--body);color:var(--muted);text-decoration:none}
+.tabs a[aria-current="page"]{background:var(--accent);color:var(--on-accent)}
+.view{display:grid;gap:16px;margin-top:16px}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:4px;min-width:0}
+.stat span{font-size:12px;color:var(--muted)}
+.stat b{font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat.main{border-color:var(--accent)}
+@media (max-width:720px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar .grow{flex:1}
+.cycle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cycle label{font-weight:600}
+.cycle input{height:42px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font:600 14px var(--body);padding:0 10px}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.team{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums;font-size:14px}
+table.team th{font:500 11px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+table.team th.calc,table.team td.calc{background:var(--field)}
+table.team td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+table.team tbody tr:last-child td{border-bottom:0}
+table.team tfoot td{border-top:1px solid var(--line);font-weight:700;padding:10px 8px}
+table.team th:first-child,table.team td:first-child{position:sticky;left:0;z-index:1;background:var(--surface);border-right:1px solid var(--line)}
+table.team td.num,table.team th.num{text-align:right}
+table.team th:last-child,table.team td:last-child{position:sticky;right:0;z-index:1;background:var(--field);border-left:1px solid var(--line);box-shadow:-10px 0 14px -12px rgba(0,0,0,.35)}
+.namecell{display:flex;gap:4px;align-items:center}
+.cin{height:36px;width:100%;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink);font:500 14px var(--body);font-variant-numeric:tabular-nums;padding:0 8px;outline:none}
+.cin:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.cin.name{min-width:130px;font-weight:600}
+.cin.money{min-width:96px;text-align:right}
+.cin.int{width:52px;text-align:right}
+.cin.sel{width:auto;min-width:64px;padding-right:4px}
+.cell-tier b{display:block}
+.cell-tier small,.cell-sub{display:block;font-size:12px;color:var(--muted)}
+.amt{font-weight:600}
+.amt.big{font-weight:700}
+.amt.neg{color:var(--bad)}
+.x{width:32px;height:32px;border-radius:8px;border:1px solid transparent;background:none;color:var(--muted);font:500 18px var(--body);cursor:pointer}
+.x:hover{border-color:var(--line);color:var(--bad)}
+.x.armed{background:var(--bad);color:#fff;width:auto;padding:0 10px;font-size:12px;font-weight:600}
+.empty{padding:28px 18px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.confirm p{margin:0;flex:1 1 260px}
+.confirm .btns{display:flex;gap:8px}
+
+.history{display:grid;gap:8px}
+.history details{border:1px solid var(--line);border-radius:10px;background:var(--field)}
+.history summary{cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;list-style:none}
+.history summary::-webkit-details-marker{display:none}
+.history summary b{font-weight:600}
+.history summary span{color:var(--muted);font-variant-numeric:tabular-nums}
+.history .inner{padding:0 14px 14px;display:grid;gap:10px}
+.history table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.history th{font:500 10px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.history td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.history td.num,.history th.num{text-align:right}
+
+/* rules */
+.form-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.lines{display:grid;gap:8px}
+.line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) 36px;gap:8px;align-items:end}
+.line .field label{font-size:13px;font-weight:500;color:var(--muted)}
+.rin{height:44px;width:100%;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--ink);font:600 16px var(--body);font-variant-numeric:tabular-nums;padding:0 12px;outline:none}
+.rin:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.unit{position:relative}
+.unit .rin{padding-right:34px}
+.unit em{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--muted);font-weight:600;pointer-events:none}
+.daychips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.daychips .chip{min-height:38px;font-size:15px}
+.preview{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.preview table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.preview th,.preview td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.preview th:first-child,.preview td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+.preview thead th{font:500 11px var(--mono);color:var(--muted)}
+.preview td.base,.preview th.base{background:var(--accent-soft)}
+.preview tr:last-child td{border-bottom:0}
+
+.savebar{position:sticky;bottom:0;z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;box-shadow:0 -8px 24px -18px rgba(0,0,0,.4)}
+.savebar .msg{flex:1 1 220px;font-size:14px}
+.savebar .msg.dirty{color:var(--warn);font-weight:600}
+.savebar .msg.ok{color:var(--good);font-weight:600}
+.savebar .msg.err{color:var(--bad);font-weight:600}
+.savebar .btns{display:flex;gap:8px}
+.keybox{display:grid;gap:10px}
+.keyrow{display:flex;gap:8px;flex-wrap:wrap}
+.keyrow input{flex:1 1 220px}
+.wrap.wide{padding-bottom:48px}
+</style>
+</head>
+<body>
+<div class="wrap wide">
+  <header class="top">
+    <div class="topline">
+      <div class="eyebrow">Для РОП и РГ</div>
+      <a class="navlink" href="../">← Калькулятор МВУ</a>
+    </div>
+    <h1>Админка МВУ</h1>
+  </header>
+
+  <nav class="tabs" aria-label="Разделы">
+    <a href="#team" id="tabTeam">Команда</a>
+    <a href="#rules" id="tabRules">Условия</a>
+  </nav>
+
+  <!-- КОМАНДА -->
+  <section class="view" id="viewTeam" aria-label="Команда">
+    <div class="stats">
+      <div class="stat main"><span>К выплате за цикл</span><b id="sWeekly">0 ₽</b></div>
+      <div class="stat"><span id="sSoftLbl">За встречи, 10-го</span><b id="sSoft">0 ₽</b></div>
+      <div class="stat"><span>Выручка команды</span><b id="sRev">0 ₽</b></div>
+      <div class="stat"><span>Бонусы за конверсию</span><b id="sBonus">0 из 0</b></div>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <div class="cycle"><label for="cycleStart">Цикл с</label><input type="date" id="cycleStart"></div>
+        <span class="grow"></span>
+        <button class="btn" type="button" id="copyBtn">Скопировать таблицу</button>
+        <button class="btn" type="button" id="closeBtn">Закрыть цикл</button>
+        <button class="btn primary" type="button" id="addBtn">+ МВУ</button>
+      </div>
+      <div class="hint" id="closeBox" hidden>
+        <div class="confirm">
+          <p id="closeText"></p>
+          <div class="btns"><button class="btn sm" type="button" id="closeNo">Отмена</button><button class="btn sm primary" type="button" id="closeYes">Закрыть цикл</button></div>
+        </div>
+      </div>
+      <div class="hint good" id="toast" hidden></div>
+      <div class="tbl-wrap">
+        <table class="team" id="teamTable">
+          <thead>
+            <tr>
+              <th>МВУ</th><th>Дней</th><th class="num">Выручка</th><th class="num">Клоузеры</th>
+              <th class="num">Встреч</th><th class="num">Оплат</th><th class="num">Подач</th><th>Кэф</th>
+              <th class="num" title="Чистые сделки по чек-листу">ОКК +</th><th class="num" title="Сделки с ошибкой">ОКК −</th>
+              <th class="calc">Процент</th><th class="calc num">CR продажа</th><th class="calc num">CR подача</th>
+              <th class="calc num">За цикл</th><th class="calc num">Встречи</th><th class="calc">Кэф дальше</th><th class="calc num">Итого</th>
+            </tr>
+          </thead>
+          <tbody id="teamBody"></tbody>
+          <tfoot id="teamFoot"></tfoot>
+        </table>
+        <div class="empty" id="teamEmpty" hidden><b>Команда пока пустая</b>Добавь первого МВУ кнопкой «+ МВУ» и вноси цифры прямо в таблицу.</div>
+      </div>
+      <p class="hint-sm" style="margin:0">Цифры команды хранятся только в этом браузере и в GitHub не попадают. Перед чисткой браузера или сменой устройства скачай копию.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>История циклов</h2></div>
+      <div class="history" id="history"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Резервная копия</h2></div>
+      <div class="toolbar">
+        <button class="btn" type="button" id="exportBtn">Скачать копию</button>
+        <button class="btn" type="button" id="importBtn">Загрузить копию</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+      <div class="hint" id="importBox" hidden>
+        <div class="confirm">
+          <p id="importText"></p>
+          <div class="btns"><button class="btn sm" type="button" id="importNo">Отмена</button><button class="btn sm primary" type="button" id="importYes">Заменить</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- УСЛОВИЯ -->
+  <section class="view" id="viewRules" aria-label="Условия" hidden>
+    <div class="hint" id="rulesStatus">Загружаю условия…</div>
+
+    <div class="panel">
+      <h2>Общее</h2>
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1"><label for="r_title">Название мотивации</label><input class="rin" id="r_title" data-path="title" data-type="text"></div>
+        <div class="field"><label for="r_base">Планы заданы для цикла, дней</label><input class="rin" id="r_base" data-path="baseDays" inputmode="numeric"></div>
+        <div class="field"><label for="r_payday">Фикс платят, число месяца</label><input class="rin" id="r_payday" data-path="payday" inputmode="numeric"></div>
+      </div>
+      <div class="load">
+        <div class="lbl"><b>Длина цикла на выбор у МВУ</b><span class="hint-sm">отметь все варианты</span></div>
+        <div class="daychips" id="r_days"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 id="r_tiersTitle">Процент с продаж</h2>
+      <div class="form-grid">
+        <div class="field"><label for="r_floorRate">Первый процент</label><div class="unit"><input class="rin" id="r_floorRate" data-path="floor.rate" inputmode="decimal"><em>%</em></div></div>
+        <div class="field"><label for="r_floorFrom">Начисляется от выручки</label><div class="unit"><input class="rin" id="r_floorFrom" data-path="floor.from" data-money="1" inputmode="numeric"><em>₽</em></div><span class="hint-sm">одинаково для любой длины цикла</span></div>
+      </div>
+      <div class="lines" id="r_tiers"></div>
+      <div><button class="btn sm" type="button" id="r_addTier">+ Ступень</button></div>
+    </div>
+
+    <div class="panel">
+      <h2 id="r_bonusTitle">Бонусы за цикл</h2>
+      <div class="form-grid">
+        <div class="field"><label for="r_minMeet">Минимум встреч</label><input class="rin" id="r_minMeet" data-path="minMeetings" inputmode="numeric"></div>
+        <div class="field"><label for="r_saleMin">Конверсия в продажу от</label><div class="unit"><input class="rin" id="r_saleMin" data-path="saleConv.min" inputmode="decimal"><em>%</em></div></div>
+        <div class="field"><label for="r_saleBonus">Бонус за продажу</label><div class="unit"><input class="rin" id="r_saleBonus" data-path="saleConv.bonus" data-money="1" inputmode="numeric"><em>₽</em></div></div>
+        <div class="field"><label for="r_subMin">Конверсия в подачу от</label><div class="unit"><input class="rin" id="r_subMin" data-path="subConv.min" inputmode="decimal"><em>%</em></div></div>
+        <div class="field"><label for="r_subBonus">Бонус за подачу</label><div class="unit"><input class="rin" id="r_subBonus" data-path="subConv.bonus" data-money="1" inputmode="numeric"><em>₽</em></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Встречи, фикс и ОКК</h2>
+      <div class="form-grid">
+        <div class="field"><label for="r_meet">За проведённую встречу</label><div class="unit"><input class="rin" id="r_meet" data-path="meetingRate" data-money="1" inputmode="numeric"><em>₽</em></div></div>
+        <div class="field"><label for="r_fix">Твёрдый фикс в месяц</label><div class="unit"><input class="rin" id="r_fix" data-path="hardFix" data-money="1" inputmode="numeric"><em>₽</em></div></div>
+        <div class="field"><label for="r_okkClean">ОКК, чистая сделка</label><div class="unit"><input class="rin" id="r_okkClean" data-path="okk.clean" data-money="1" inputmode="numeric"><em>₽</em></div></div>
+        <div class="field"><label for="r_okkErr">ОКК, сделка с ошибкой</label><div class="unit"><input class="rin" id="r_okkErr" data-path="okk.error" data-money="1" inputmode="numeric"><em>₽</em></div><span class="hint-sm">вычитается с каждой оплаты</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Грейды</h2>
+      <span class="hint-sm">Кэф умножает процент с продаж в следующем цикле. Каждый следующий грейд дают, только если уже есть предыдущий.</span>
+      <div class="lines" id="r_grades"></div>
+      <div><button class="btn sm" type="button" id="r_addGrade">+ Грейд</button></div>
+    </div>
+
+    <div class="panel">
+      <h2>Проверка по длине цикла</h2>
+      <span class="hint-sm">Так условия увидят МВУ. Сверь с таблицей мотивации перед сохранением.</span>
+      <div class="preview" id="r_preview"></div>
+    </div>
+
+    <div class="panel keybox" id="keyBox">
+      <h2>Ключ панели</h2>
+      <div id="keyIn">
+        <span class="hint-sm">Нужен только для сохранения условий. Ключ выдаёт владелец сайта, он хранится только на этом устройстве.</span>
+        <div class="keyrow" style="margin-top:10px">
+          <input class="rin" id="keyInput" type="password" autocomplete="off" placeholder="github_pat_…">
+          <button class="btn" type="button" id="keySave">Запомнить</button>
+        </div>
+      </div>
+      <div id="keyOk" class="keyrow" hidden>
+        <span class="hint good" style="flex:1">Ключ сохранён на этом устройстве.</span>
+        <button class="btn" type="button" id="keyForget">Забыть ключ</button>
+      </div>
+    </div>
+
+    <div class="savebar">
+      <span class="msg" id="saveMsg">Изменений нет</span>
+      <div class="btns">
+        <button class="btn" type="button" id="revertBtn" disabled>Отменить</button>
+        <button class="btn primary" type="button" id="saveBtn" disabled>Сохранить для всех</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="../engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var M = window.MVU, rub = M.rub, pc = M.pc, kf = M.kf, fmt = M.fmt, pl = M.pl;
+
+  /* где лежит репозиторий: берём из адреса github.io, иначе значения по умолчанию */
+  var OWNER = 'zevs2018123-cloud', REPO = 'mvu-calc', BRANCH = 'main', FILE = 'config.json';
+  if (/\.github\.io$/.test(location.hostname)) {
+    OWNER = location.hostname.split('.')[0];
+    var seg = location.pathname.split('/').filter(Boolean)[0];
+    if (seg && seg !== 'admin') REPO = seg;
+  }
+  var API = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + FILE;
+
+  var TEAM_KEY = 'mvu-team-v1', TOKEN_KEY = 'mvu-panel-key';
+  var cfg = M.normalize(M.DEFAULT_CONFIG);
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function today() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+  /* ---------- tabs ---------- */
+  function route() {
+    var rules = location.hash === '#rules';
+    $('viewTeam').hidden = rules; $('viewRules').hidden = !rules;
+    $('tabTeam').setAttribute('aria-current', rules ? 'false' : 'page');
+    $('tabRules').setAttribute('aria-current', rules ? 'page' : 'false');
+  }
+  window.addEventListener('hashchange', route); route();
+
+  /* ================= КОМАНДА ================= */
+  var team = { cycleStart: today(), rows: [], history: [] };
+  try {
+    var t = JSON.parse(lsGet(TEAM_KEY));
+    if (t && Array.isArray(t.rows)) team = { cycleStart: t.cycleStart || today(), rows: t.rows, history: Array.isArray(t.history) ? t.history : [] };
+  } catch (e) {}
+  function saveTeam() { lsSet(TEAM_KEY, JSON.stringify(team)); }
+  function blankRow(name) { return { id: uid(), name: name || '', days: cfg.baseDays, own: 0, closers: 0, meetings: 0, sales: 0, subs: 0, coef: 1, okkClean: 0, okkErr: 0 }; }
+  function rowById(id) { return team.rows.filter(function (r) { return r.id === id; })[0]; }
+
+  var MONEY = ['own', 'closers'], INTS = ['meetings', 'sales', 'subs', 'okkClean', 'okkErr'];
+
+  function selectHtml(field, opts, val) {
+    return '<select class="cin sel" data-f="' + field + '" aria-label="' + (field === 'days' ? 'Дней в цикле' : 'Кэф') + '">' + opts.map(function (o) {
+      return '<option value="' + o[0] + '"' + (+o[0] === +val ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('') + '</select>';
+  }
+
+  function calcCells(r, c) {
+    var tier = '<b>' + (c.cur.rate ? pc(c.ratePct) : '0%') + '</b><small>' + (c.next ? 'до ' + pc(c.next.rate * 100) + ': ' + rub(c.toNext) : 'максимум') + '</small>';
+    function cr(v, ok, minPct) {
+      if (!r.meetings) return '<span class="pill mute">—</span>';
+      if (!c.meetOK) return '<span class="pill no" title="Мало встреч для бонуса">' + pc(v * 100) + ' · мало встреч</span>';
+      return '<span class="pill ' + (ok ? 'ok' : 'no') + '" title="План ' + pc(minPct) + '">' + pc(v * 100) + '</span>';
+    }
+    return {
+      tier: tier,
+      crs: cr(c.cs, c.saleOK, cfg.saleConv.min),
+      crp: cr(c.cp, c.subOK, cfg.subConv.min),
+      weekly: '<span class="amt' + (c.weekly < 0 ? ' neg' : '') + '">' + rub(c.weekly) + '</span>' + (c.bonuses || c.okk ? '<span class="cell-sub">' + [c.bonuses ? 'бонусы ' + rub(c.bonuses) : '', c.okk ? 'ОКК ' + rub(c.okk) : ''].filter(Boolean).join(' · ') + '</span>' : ''),
+      soft: '<span class="amt">' + rub(c.soft) + '</span>',
+      total: '<span class="amt big">' + rub(c.total) + '</span>',
+      next: c.nextCoef > 1 ? '<span class="pill ok">' + kf(c.nextCoef) + '</span>' : '<span class="pill mute">без кэфа</span>'
+    };
+  }
+
+  function rowHtml(r) {
+    var c = M.compute(cfg, r), k = calcCells(r, c);
+    var dayOpts = cfg.days.map(function (d) { return [d, d]; });
+    if (cfg.days.indexOf(+r.days) < 0) dayOpts.push([r.days, r.days]);
+    var coefOpts = M.coefOptions(cfg).map(function (v) { return [v, v === 1 ? '—' : kf(v)]; });
+    if (M.coefOptions(cfg).indexOf(+r.coef) < 0) coefOpts.push([r.coef, kf(r.coef)]);
+    function money(f) { return '<input class="cin money" data-f="' + f + '" inputmode="numeric" value="' + (r[f] ? fmt(r[f]) : '') + '" placeholder="0" aria-label="' + (f === 'own' ? 'Выручка' : 'Клоузеры') + '">'; }
+    function int(f, lbl) { return '<input class="cin int" data-f="' + f + '" inputmode="numeric" value="' + (r[f] || '') + '" placeholder="0" aria-label="' + lbl + '">'; }
+    return '<tr data-id="' + r.id + '">' +
+      '<td><div class="namecell"><input class="cin name" data-f="name" value="' + esc(r.name) + '" placeholder="Имя" aria-label="Имя МВУ"><button class="x" type="button" data-del="1" aria-label="Удалить строку">×</button></div></td>' +
+      '<td>' + selectHtml('days', dayOpts, r.days) + '</td>' +
+      '<td class="num">' + money('own') + '</td><td class="num">' + money('closers') + '</td>' +
+      '<td class="num">' + int('meetings', 'Встреч') + '</td><td class="num">' + int('sales', 'Оплат') + '</td><td class="num">' + int('subs', 'Подач') + '</td>' +
+      '<td>' + selectHtml('coef', coefOpts, r.coef) + '</td>' +
+      '<td class="num">' + int('okkClean', 'ОКК чистые') + '</td><td class="num">' + int('okkErr', 'ОКК с ошибкой') + '</td>' +
+      '<td class="calc cell-tier" data-c="tier">' + k.tier + '</td>' +
+      '<td class="calc num" data-c="crs">' + k.crs + '</td><td class="calc num" data-c="crp">' + k.crp + '</td>' +
+      '<td class="calc num" data-c="weekly">' + k.weekly + '</td><td class="calc num" data-c="soft">' + k.soft + '</td>' +
+      '<td class="calc" data-c="next">' + k.next + '</td><td class="calc num" data-c="total">' + k.total + '</td></tr>';
+  }
+
+  function updateRowCells(tr, r) {
+    var k = calcCells(r, M.compute(cfg, r));
+    Object.keys(k).forEach(function (key) { var td = tr.querySelector('[data-c="' + key + '"]'); if (td) td.innerHTML = k[key]; });
+  }
+
+  function teamCalc() {
+    var acc = { weekly: 0, soft: 0, total: 0, revenue: 0, meetings: 0, sales: 0, subs: 0, bonusHit: 0 };
+    var list = team.rows.map(function (r) {
+      var c = M.compute(cfg, r);
+      acc.weekly += c.weekly; acc.soft += c.soft; acc.total += c.total; acc.revenue += c.revenue;
+      acc.meetings += c.input.meetings; acc.sales += c.input.sales; acc.subs += c.input.subs;
+      if (c.saleOK || c.subOK) acc.bonusHit++;
+      return { r: r, c: c };
+    });
+    return { list: list, acc: acc };
+  }
+
+  function renderSummary() {
+    var t = teamCalc(), a = t.acc;
+    $('sWeekly').textContent = rub(a.weekly);
+    $('sSoft').textContent = rub(a.soft);
+    $('sSoftLbl').textContent = 'За встречи, ' + cfg.payday + '-го';
+    $('sRev').textContent = rub(a.revenue);
+    $('sBonus').textContent = a.bonusHit + ' из ' + team.rows.length;
+    $('teamFoot').innerHTML = team.rows.length ? '<tr><td>Итого · ' + team.rows.length + ' ' + pl(team.rows.length, ['МВУ', 'МВУ', 'МВУ']) + '</td><td></td>' +
+      '<td class="num">' + rub(a.revenue) + '</td><td></td><td class="num">' + fmt(a.meetings) + '</td><td class="num">' + fmt(a.sales) + '</td><td class="num">' + fmt(a.subs) + '</td>' +
+      '<td></td><td></td><td></td><td class="calc"></td><td class="calc"></td><td class="calc"></td>' +
+      '<td class="calc num">' + rub(a.weekly) + '</td><td class="calc num">' + rub(a.soft) + '</td><td class="calc"></td><td class="calc num">' + rub(a.total) + '</td></tr>' : '';
+  }
+
+  function renderTeam() {
+    $('cycleStart').value = team.cycleStart || today();
+    $('teamBody').innerHTML = team.rows.map(rowHtml).join('');
+    $('teamEmpty').hidden = team.rows.length > 0;
+    $('teamTable').hidden = team.rows.length === 0;
+    $('closeBtn').disabled = $('copyBtn').disabled = team.rows.length === 0;
+    renderSummary();
+    renderHistory();
+  }
+
+  $('teamBody').addEventListener('input', function (e) {
+    var el = e.target, f = el.dataset.f; if (!f) return;
+    var tr = el.closest('tr'), r = rowById(tr.dataset.id); if (!r) return;
+    if (f === 'name') { r.name = el.value.slice(0, 60); saveTeam(); return; }
+    if (MONEY.indexOf(f) >= 0) {
+      var d = el.value.replace(/\D/g, '').slice(0, 9); r[f] = d ? parseInt(d, 10) : 0; el.value = d ? fmt(r[f]) : '';
+    } else if (INTS.indexOf(f) >= 0) {
+      var d2 = el.value.replace(/\D/g, '').slice(0, 4); r[f] = d2 ? parseInt(d2, 10) : 0; el.value = d2;
+    } else return;
+    saveTeam(); updateRowCells(tr, r); renderSummary();
+  });
+  $('teamBody').addEventListener('change', function (e) {
+    var el = e.target, f = el.dataset.f; if (f !== 'days' && f !== 'coef') return;
+    var tr = el.closest('tr'), r = rowById(tr.dataset.id); if (!r) return;
+    r[f] = parseFloat(el.value); saveTeam(); updateRowCells(tr, r); renderSummary();
+  });
+  $('teamBody').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]'); if (!b) return;
+    if (!b.classList.contains('armed')) {
+      b.classList.add('armed'); b.textContent = 'Удалить?';
+      setTimeout(function () { if (b.isConnected) { b.classList.remove('armed'); b.textContent = '×'; } }, 3000);
+      return;
+    }
+    var id = b.closest('tr').dataset.id;
+    team.rows = team.rows.filter(function (r) { return r.id !== id; });
+    saveTeam(); renderTeam();
+  });
+  $('addBtn').addEventListener('click', function () {
+    var r = blankRow(); team.rows.push(r); saveTeam(); renderTeam();
+    var inp = document.querySelector('tr[data-id="' + r.id + '"] .cin.name'); if (inp) inp.focus();
+  });
+  $('cycleStart').addEventListener('change', function () { team.cycleStart = this.value || today(); saveTeam(); });
+
+  function toast(msg, kind) {
+    var t = $('toast'); t.textContent = msg; t.className = 'hint ' + (kind || 'good'); t.hidden = false;
+    clearTimeout(toast.tm); toast.tm = setTimeout(function () { t.hidden = true; }, 4000);
+  }
+
+  /* закрытие цикла */
+  $('closeBtn').addEventListener('click', function () {
+    var a = teamCalc().acc;
+    $('closeText').textContent = 'Закрыть цикл с ' + M.dateRu(team.cycleStart) + '? К выплате ' + rub(a.weekly) + '. Цифры уйдут в историю, строки обнулятся, кэф на следующий цикл проставится каждому сам.';
+    $('closeBox').hidden = false;
+  });
+  $('closeNo').addEventListener('click', function () { $('closeBox').hidden = true; });
+  $('closeYes').addEventListener('click', function () {
+    var t = teamCalc();
+    var snap = {
+      id: uid(), start: team.cycleStart, closed: today(), title: cfg.title,
+      totals: { weekly: Math.round(t.acc.weekly), soft: Math.round(t.acc.soft), total: Math.round(t.acc.total), revenue: t.acc.revenue },
+      rows: t.list.map(function (x) {
+        var r = x.r, c = x.c;
+        return { name: r.name || 'Без имени', days: c.input.days, revenue: c.revenue, meetings: c.input.meetings, sales: c.input.sales, subs: c.input.subs,
+          coef: c.input.coef, ratePct: c.ratePct, bonuses: c.bonuses, okk: c.okk, weekly: Math.round(c.weekly), soft: Math.round(c.soft), total: Math.round(c.total), nextCoef: c.nextCoef };
+      })
+    };
+    team.history.unshift(snap);
+    team.history = team.history.slice(0, 80);
+    team.rows.forEach(function (r, i) {
+      var nc = t.list[i].c.nextCoef;
+      ['own', 'closers', 'meetings', 'sales', 'subs', 'okkClean', 'okkErr'].forEach(function (k) { r[k] = 0; });
+      r.coef = nc;
+    });
+    team.cycleStart = today();
+    saveTeam(); $('closeBox').hidden = true; renderTeam();
+    toast('Цикл закрыт и сохранён в истории. Кэф на новый цикл проставлен.');
+  });
+
+  /* копирование в таблицу */
+  function tsv(rows) {
+    var head = ['МВУ', 'Дней', 'Выручка', 'Встреч', 'Оплат', 'Подач', 'Кэф', 'Процент', 'Бонусы', 'ОКК', 'За цикл', 'За встречи', 'Итого', 'Кэф дальше'];
+    var n = function (v) { return String(Math.round(v)); };
+    var p = function (v) { return String(Math.round(v * 10) / 10).replace('.', ',') + '%'; };
+    var k = function (v) { return String(v).replace('.', ','); };
+    return [head.join('\t')].concat(rows.map(function (x) {
+      return [x.name, x.days, n(x.revenue), x.meetings, x.sales, x.subs, k(x.coef), p(x.ratePct), n(x.bonuses), n(x.okk), n(x.weekly), n(x.soft), n(x.total), k(x.nextCoef)].join('\t');
+    })).join('\n');
+  }
+  function copyText(text) {
+    var done = function () { toast('Таблица скопирована. Вставь её в Google-таблицу.'); };
+    var fallback = function () {
+      var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('Не получилось скопировать, браузер запретил доступ к буферу.', 'warn'); }
+      ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+  function currentRowsForCopy() {
+    return teamCalc().list.map(function (x) {
+      var c = x.c; return { name: x.r.name, days: c.input.days, revenue: c.revenue, meetings: c.input.meetings, sales: c.input.sales, subs: c.input.subs, coef: c.input.coef, ratePct: c.ratePct, bonuses: c.bonuses, okk: c.okk, weekly: c.weekly, soft: c.soft, total: c.total, nextCoef: c.nextCoef };
+    });
+  }
+  $('copyBtn').addEventListener('click', function () { copyText(tsv(currentRowsForCopy())); });
+
+  /* история */
+  function renderHistory() {
+    var h = $('history');
+    if (!team.history.length) { h.innerHTML = '<span class="hint-sm">Здесь появятся закрытые циклы.</span>'; return; }
+    h.innerHTML = team.history.map(function (s) {
+      var rows = s.rows.map(function (x) {
+        return '<tr><td>' + esc(x.name) + '</td><td class="num">' + rub(x.revenue) + '</td><td class="num">' + pc(x.ratePct) + '</td><td class="num">' + (x.coef > 1 ? kf(x.coef) : '—') + '</td><td class="num">' + rub(x.bonuses) + '</td><td class="num">' + rub(x.okk) + '</td><td class="num"><b>' + rub(x.weekly) + '</b></td><td class="num">' + rub(x.soft) + '</td><td class="num">' + rub(x.total) + '</td><td class="num">' + (x.nextCoef > 1 ? kf(x.nextCoef) : '—') + '</td></tr>';
+      }).join('');
+      return '<details data-h="' + s.id + '"><summary><b>Цикл с ' + M.dateRu(s.start) + '</b><span>закрыт ' + M.dateRu(s.closed) + ' · к выплате ' + rub(s.totals.weekly) + '</span></summary>' +
+        '<div class="inner"><div class="tbl-wrap" style="border:0"><table><thead><tr><th>МВУ</th><th class="num">Выручка</th><th class="num">%</th><th class="num">Кэф</th><th class="num">Бонусы</th><th class="num">ОКК</th><th class="num">За цикл</th><th class="num">Встречи</th><th class="num">Итого</th><th class="num">Кэф дальше</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+        '<div class="toolbar"><button class="btn sm" type="button" data-hcopy="' + s.id + '">Скопировать</button><span class="grow"></span><button class="linkbtn danger" type="button" data-hdel="' + s.id + '">Удалить из истории</button></div></div></details>';
+    }).join('');
+  }
+  $('history').addEventListener('click', function (e) {
+    var c = e.target.closest('[data-hcopy]');
+    if (c) { var s = team.history.filter(function (x) { return x.id === c.dataset.hcopy; })[0]; if (s) copyText(tsv(s.rows)); return; }
+    var d = e.target.closest('[data-hdel]');
+    if (d) {
+      if (d.dataset.armed) { team.history = team.history.filter(function (x) { return x.id !== d.dataset.hdel; }); saveTeam(); renderHistory(); return; }
+      d.dataset.armed = '1'; d.textContent = 'Точно удалить? Нажми ещё раз';
+      setTimeout(function () { if (d.isConnected) { delete d.dataset.armed; d.textContent = 'Удалить из истории'; } }, 3000);
+    }
+  });
+
+  /* резервная копия */
+  $('exportBtn').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify({ app: 'mvu-calc', exported: new Date().toISOString(), team: team }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mvu-komanda-' + today() + '.json';
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+  var pendingImport = null;
+  $('importBtn').addEventListener('click', function () { $('importFile').click(); });
+  $('importFile').addEventListener('change', function () {
+    var f = this.files && this.files[0]; this.value = ''; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var j = JSON.parse(rd.result), t = j.team || j;
+        if (!t || !Array.isArray(t.rows)) throw new Error('bad');
+        pendingImport = { cycleStart: t.cycleStart || today(), rows: t.rows.map(function (r) { return Object.assign(blankRow(), r, { id: r.id || uid() }); }), history: Array.isArray(t.history) ? t.history : [] };
+        $('importText').textContent = 'В копии ' + pendingImport.rows.length + ' МВУ и ' + pendingImport.history.length + ' ' + pl(pendingImport.history.length, ['цикл', 'цикла', 'циклов']) + ' в истории. Заменить текущие данные?';
+        $('importBox').className = 'hint'; $('importBox').hidden = false;
+      } catch (e) {
+        pendingImport = null; $('importText').textContent = 'Этот файл не похож на копию из админки. Выбери файл mvu-komanda-….json.';
+        $('importBox').className = 'hint bad'; $('importBox').hidden = false;
+      }
+    };
+    rd.readAsText(f);
+  });
+  $('importNo').addEventListener('click', function () { pendingImport = null; $('importBox').hidden = true; });
+  $('importYes').addEventListener('click', function () {
+    if (!pendingImport) { $('importBox').hidden = true; return; }
+    team = pendingImport; pendingImport = null; saveTeam(); $('importBox').hidden = true; renderTeam();
+    toast('Копия загружена.');
+  });
+
+  /* ================= УСЛОВИЯ ================= */
+  var draft = null, savedJson = '';
+  var token = lsGet(TOKEN_KEY) || '';
+
+  function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+  function setPath(o, p, v) { var ks = p.split('.'), last = ks.pop(), t = ks.reduce(function (a, k) { return a[k]; }, o); t[last] = v; }
+  function shown(v, money) { if (v == null || v === '') return ''; return money ? fmt(v) : String(v).replace('.', ','); }
+  function parseIn(s) { s = String(s).replace(/\s| /g, ''); if (s === '') return 0; var n = M.num(s, NaN); return isNaN(n) ? 0 : n; }
+
+  function renderRules() {
+    document.querySelectorAll('#viewRules [data-path]').forEach(function (el) {
+      if (el.closest('#r_tiers') || el.closest('#r_grades')) return;
+      var v = getPath(draft, el.dataset.path);
+      el.value = el.dataset.type === 'text' ? (v || '') : shown(v, el.dataset.money);
+    });
+    var dc = $('r_days'); dc.innerHTML = '';
+    for (var d = 14; d >= 1; d--) (function (n) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = n;
+      b.setAttribute('aria-pressed', String(draft.days.indexOf(n) >= 0));
+      b.addEventListener('click', function () {
+        var i = draft.days.indexOf(n);
+        if (i >= 0) { if (n === +draft.baseDays) return; draft.days.splice(i, 1); } else { draft.days.push(n); draft.days.sort(function (a, b) { return b - a; }); }
+        b.setAttribute('aria-pressed', String(draft.days.indexOf(n) >= 0)); changed();
+      });
+      dc.appendChild(b);
+    })(d);
+    $('r_tiers').innerHTML = draft.tiers.map(function (t, i) {
+      return '<div class="line"><div class="field"><label for="t_r' + i + '">Процент</label><div class="unit"><input class="rin" id="t_r' + i + '" data-path="tiers.' + i + '.rate" inputmode="decimal" value="' + shown(t.rate) + '"><em>%</em></div></div>' +
+        '<div class="field"><label for="t_f' + i + '">От выручки за ' + draft.baseDays + ' дн.</label><div class="unit"><input class="rin" id="t_f' + i + '" data-path="tiers.' + i + '.from" data-money="1" inputmode="numeric" value="' + shown(t.from, 1) + '"><em>₽</em></div></div>' +
+        '<button class="x" type="button" data-rm="tiers" data-i="' + i + '" aria-label="Удалить ступень">×</button></div>';
+    }).join('');
+    $('r_grades').innerHTML = draft.grades.map(function (g, i) {
+      return '<div class="line"><div class="field"><label for="g_p' + i + '">Прошлый цикл от</label><div class="unit"><input class="rin" id="g_p' + i + '" data-path="grades.' + i + '.prev" inputmode="decimal" value="' + shown(g.prev) + '"><em>%</em></div></div>' +
+        '<div class="field"><label for="g_c' + i + '">Кэф к проценту</label><input class="rin" id="g_c' + i + '" data-path="grades.' + i + '.coef" inputmode="decimal" value="' + shown(g.coef) + '"></div>' +
+        '<button class="x" type="button" data-rm="grades" data-i="' + i + '" aria-label="Удалить грейд">×</button></div>';
+    }).join('');
+    $('r_tiersTitle').textContent = 'Процент с продаж · планы на ' + draft.baseDays + ' ' + pl(+draft.baseDays, ['день', 'дня', 'дней']);
+    $('r_bonusTitle').textContent = 'Бонусы за цикл · на ' + draft.baseDays + ' ' + pl(+draft.baseDays, ['день', 'дня', 'дней']);
+    renderPreview(); renderSaveState();
+  }
+
+  function renderPreview() {
+    var c = M.normalize(draft);
+    var days = c.days.slice();
+    var head = '<tr><th>Дней в цикле</th>' + days.map(function (d) { return '<th class="' + (d === c.baseDays ? 'base' : '') + '">' + d + '</th>'; }).join('') + '</tr>';
+    var body = '';
+    var sc = days.map(function (d) { return M.scale(c, d); });
+    sc[0].tiers.slice(1).forEach(function (t, i) {
+      body += '<tr><td>' + pc(t.rate * 100) + ' от</td>' + sc.map(function (s, j) { return '<td class="' + (days[j] === c.baseDays ? 'base' : '') + '">' + fmt(s.tiers[i + 1].from) + '</td>'; }).join('') + '</tr>';
+    });
+    body += '<tr><td>Минимум встреч</td>' + sc.map(function (s, j) { return '<td class="' + (days[j] === c.baseDays ? 'base' : '') + '">' + s.minMeet + '</td>'; }).join('') + '</tr>';
+    body += '<tr><td>Бонус, продажа ' + pc(c.saleConv.min) + '+</td>' + sc.map(function (s, j) { return '<td class="' + (days[j] === c.baseDays ? 'base' : '') + '">' + fmt(s.saleBonus) + '</td>'; }).join('') + '</tr>';
+    body += '<tr><td>Бонус, подача ' + pc(c.subConv.min) + '+</td>' + sc.map(function (s, j) { return '<td class="' + (days[j] === c.baseDays ? 'base' : '') + '">' + fmt(s.subBonus) + '</td>'; }).join('') + '</tr>';
+    $('r_preview').innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+  }
+
+  function validate() {
+    var c = M.normalize(draft);
+    for (var i = 1; i < c.tiers.length; i++) if (c.tiers[i].rate <= c.tiers[i - 1].rate) return 'Чем выше порог выручки, тем выше должен быть процент. Проверь ступени.';
+    if (c.tiers.length && c.tiers[0].rate <= c.floor.rate) return 'Процент на первой ступени должен быть выше первого процента ' + pc(c.floor.rate) + '.';
+    for (var j = 1; j < c.grades.length; j++) if (c.grades[j].coef <= c.grades[j - 1].coef || c.grades[j].prev < c.grades[j - 1].prev) return 'Каждый следующий грейд должен требовать не меньший процент и давать больший кэф.';
+    if (draft.tiers.some(function (t) { return !(t.rate > 0 && t.from > 0); })) return 'У каждой ступени должны быть процент и порог больше нуля. Пустые ступени удали.';
+    if (draft.grades.some(function (g) { return !(g.prev > 0 && g.coef > 1); })) return 'У грейда процент должен быть больше нуля, а кэф больше 1.';
+    return '';
+  }
+
+  function isDirty() { return draft && JSON.stringify(M.normalize(draft)) !== savedJson; }
+  function renderSaveState(msg, kind) {
+    var m = $('saveMsg'), dirty = isDirty(), err = dirty ? validate() : '';
+    if (msg) { m.textContent = msg; m.className = 'msg ' + (kind || ''); }
+    else if (err) { m.textContent = err; m.className = 'msg err'; }
+    else if (dirty) { m.textContent = token ? 'Есть несохранённые изменения' : 'Есть несохранённые изменения. Для сохранения введи ключ панели выше.'; m.className = 'msg dirty'; }
+    else { m.textContent = 'Изменений нет'; m.className = 'msg'; }
+    $('revertBtn').disabled = !dirty;
+    $('saveBtn').disabled = !dirty || !!err || !token;
+  }
+  function changed() { renderPreview(); renderSaveState(); }
+
+  $('viewRules').addEventListener('input', function (e) {
+    var el = e.target, p = el.dataset.path; if (!p || !draft) return;
+    var v = el.dataset.type === 'text' ? el.value : parseIn(el.value);
+    if (p === 'baseDays' || p === 'payday' || p === 'minMeetings') v = Math.round(v);
+    setPath(draft, p, v);
+    if (p === 'baseDays' && v > 0 && draft.days.indexOf(v) < 0 && v <= 31) { draft.days.push(v); draft.days.sort(function (a, b) { return b - a; }); renderRules(); return; }
+    changed();
+  });
+  $('viewRules').addEventListener('focusout', function (e) {
+    var el = e.target; if (!el.dataset || !el.dataset.path || el.dataset.type === 'text' || !draft) return;
+    el.value = shown(getPath(draft, el.dataset.path), el.dataset.money);
+  });
+  $('viewRules').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-rm]'); if (!b || !draft) return;
+    draft[b.dataset.rm].splice(+b.dataset.i, 1); renderRules();
+  });
+  $('r_addTier').addEventListener('click', function () {
+    var last = draft.tiers[draft.tiers.length - 1];
+    draft.tiers.push({ rate: last ? last.rate + 1 : 3, from: last ? Math.round(last.from * 1.3 / 1000) * 1000 : 300000 });
+    renderRules();
+  });
+  $('r_addGrade').addEventListener('click', function () {
+    var last = draft.grades[draft.grades.length - 1];
+    draft.grades.push({ prev: last ? last.prev + 1 : 5, coef: last ? Math.round((last.coef + 0.15) * 100) / 100 : 1.15 });
+    renderRules();
+  });
+  $('revertBtn').addEventListener('click', function () { draft = JSON.parse(savedJson); renderRules(); });
+
+  /* ключ */
+  function renderKey() { $('keyIn').hidden = !!token; $('keyOk').hidden = !token; renderSaveState(); }
+  $('keySave').addEventListener('click', function () {
+    var v = $('keyInput').value.trim();
+    if (!v) { renderSaveState('Вставь ключ в поле и нажми «Запомнить».', 'err'); return; }
+    $('keySave').disabled = true;
+    fetch(API + '?ref=' + BRANCH, { headers: { Authorization: 'Bearer ' + v, Accept: 'application/vnd.github+json' } })
+      .then(function (r) {
+        $('keySave').disabled = false;
+        if (r.status === 401) { renderSaveState('Ключ не подошёл. Проверь, что скопировал его целиком.', 'err'); return; }
+        token = v; lsSet(TOKEN_KEY, v); $('keyInput').value = ''; renderKey();
+        renderSaveState(r.ok ? 'Ключ принят.' : 'Ключ сохранён, но сайт не ответил. Попробуй сохранить условия.', r.ok ? 'ok' : 'err');
+      })
+      .catch(function () { $('keySave').disabled = false; renderSaveState('Нет связи с GitHub. Проверь интернет.', 'err'); });
+  });
+  $('keyForget').addEventListener('click', function () { token = ''; lsDel(TOKEN_KEY); renderKey(); });
+
+  /* сохранение в GitHub */
+  function b64utf8(str) { var bytes = new TextEncoder().encode(str), bin = ''; for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]); return btoa(bin); }
+  function unb64utf8(b) { var bin = atob(b.replace(/\n/g, '')), bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+  function gh(method, body) {
+    return fetch(API + (method === 'GET' ? '?ref=' + BRANCH + '&t=' + Date.now() : ''), {
+      method: method, cache: 'no-store',
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  }
+  function errText(status) {
+    if (status === 401) return 'Ключ не подошёл или истёк. Попроси новый у владельца сайта.';
+    if (status === 403 || status === 404) return 'У ключа нет права менять этот сайт. Нужен ключ с доступом Contents: Read and write к репозиторию ' + REPO + '.';
+    if (status === 409 || status === 422) return 'Условия только что изменил кто-то другой. Нажми «Отменить», обнови страницу и внеси правки ещё раз.';
+    return 'GitHub ответил ошибкой ' + status + '. Попробуй ещё раз через минуту.';
+  }
+  $('saveBtn').addEventListener('click', function () {
+    var err = validate(); if (err) { renderSaveState(err, 'err'); return; }
+    var out = M.normalize(draft); out.version = (cfg.version || 1) + 1; out.updated = today();
+    $('saveBtn').disabled = true; renderSaveState('Сохраняю…', '');
+    gh('GET').then(function (r) {
+      if (!r.ok) throw r.status;
+      return r.json();
+    }).then(function (j) {
+      return gh('PUT', { message: 'Условия мотивации обновлены в админке (' + today() + ')', content: b64utf8(JSON.stringify(out, null, 2) + '\n'), sha: j.sha, branch: BRANCH });
+    }).then(function (r) {
+      if (!r.ok) throw r.status;
+      cfg = out; draft = JSON.parse(JSON.stringify(out)); savedJson = JSON.stringify(M.normalize(out));
+      renderRules(); renderTeam();
+      $('rulesStatus').textContent = 'Сейчас действуют условия от ' + M.dateRu(out.updated) + '.';
+      renderSaveState('Сохранено. МВУ увидят новые условия в калькуляторе через 1–2 минуты.', 'ok');
+    }).catch(function (s) {
+      renderSaveState(typeof s === 'number' ? errText(s) : 'Нет связи с GitHub. Проверь интернет и попробуй ещё раз.', 'err');
+      $('saveBtn').disabled = false;
+    });
+  });
+
+  /* загрузка условий: с ключом — напрямую из GitHub (свежая версия), без ключа — с сайта */
+  function setCfg(c, ok, src) {
+    cfg = c; draft = JSON.parse(JSON.stringify(c)); savedJson = JSON.stringify(M.normalize(c));
+    $('rulesStatus').textContent = ok ? 'Сейчас действуют условия от ' + (M.dateRu(c.updated) || '—') + '.' : 'Не удалось загрузить условия с сайта, показаны встроенные. Сохранять их можно.';
+    $('rulesStatus').className = 'hint' + (ok ? '' : ' warn');
+    renderRules(); renderTeam(); renderKey();
+  }
+  setCfg(cfg, true);
+  $('rulesStatus').textContent = 'Загружаю условия…';
+  (token
+    ? gh('GET').then(function (r) { if (!r.ok) throw r.status; return r.json(); }).then(function (j) { return { cfg: M.normalize(JSON.parse(unb64utf8(j.content))), ok: true }; }).catch(function () { return M.loadConfig('../'); })
+    : M.loadConfig('../')
+  ).then(function (res) { setCfg(res.cfg, res.ok); });
+})();
+</script>
+</body>
+</html>
