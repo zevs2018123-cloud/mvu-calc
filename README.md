@@ -4,6 +4,7 @@
 
 - Калькулятор: https://zevs2018123-cloud.github.io/mvu-calc/
 - Админка: https://zevs2018123-cloud.github.io/mvu-calc/admin/
+- Суфлёр вводного урока: https://zevs2018123-cloud.github.io/mvu-calc/suflyor/ (под паролем, скрипт зашифрован)
 
 ## Как устроено
 
